@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sincronizador de Veículo com Google Maps</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #16a34a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 550px;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: var(--text-main);
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .matricula-container {
+            display: flex;
+            align-items: center;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .matricula-euro {
+            background-color: #003399;
+            color: white;
+            padding: 10px 8px;
+            font-weight: bold;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+        }
+
+        .matricula-euro span {
+            font-size: 10px;
+        }
+
+        input[type="text"] {
+            border: none;
+            outline: none;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        button {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .status-panel {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 8px;
+            background-color: #f1f5f9;
+            border-left: 4px solid #cbd5e1;
+            display: none;
+        }
+
+        .status-panel.active {
+            display: block;
+            border-left-color: var(--success);
+        }
+
+        .status-title {
+            font-weight: bold;
+            color: var(--success);
+            margin-bottom: 12px;
+        }
+
+        .data-row {
+            font-size: 14px;
+            margin: 6px 0;
+            color: var(--text-muted);
+        }
+
+        .data-row strong {
+            color: var(--text-main);
+        }
+
+        #map {
+            width: 100%;
+            height: 280px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #e2e8f0;
+            display: none;
+        }
+
+        #map.visible {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid #fff;
+            width: 18px;
+            height: 18px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    
+    <!-- Script Oficial com a sua API Key injetada -->
+    <script src="https://googleapis.com"></script>
+</head>
+<body>
+
+<div class="container">
+    <h2>Sincronizador Automóvel</h2>
+    
+    <div class="form-group">
+        <label for="matricula">Matrícula do Veículo</label>
+        <div class="matricula-container">
+            <div class="matricula-euro">
+                <span>★ ★</span>
+                <strong>P</strong>
+            </div>
+            <input type="text" id="matricula" placeholder="AA-00-AA" maxlength="8">
+        </div>
+    </div>
+
+    <button id="btnSincronizar" onclick="iniciarSincronizacao()">
+        <span class="spinner" id="loadingSpinner"></span>
+        <span id="btnText">Localizar e Sincronizar Veículo</span>
+    </button>
+
+    <div id="statusPanel" class="status-panel">
+        <div class="status-title">✓ Veículo Localizado via Google Maps</div>
+        <div class="data-row">Matrícula Ativa: <strong id="resMatricula">-</strong></div>
+        <div class="data-row">Latitude: <strong id="resLat">-</strong></div>
+        <div class="data-row">Longitude: <strong id="resLon">-</strong></div>
+        <div class="data-row">Ligação GPS: <strong id="resTempo">-</strong></div>
+        
+        <div id="map"></div>
+    </div>
+</div>
+
+<script>
+    let map;
+    let marker;
+
+    const inputMatricula = document.getElementById('matricula');
+    inputMatricula.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        if (value.length > 2 && value.length <= 4) {
+            value = value.slice(0, 2) + '-' + value.slice(2);
+        } else if (value.length > 4) {
+            value = value.slice(0, 2) + '-' + value.slice(2, 4) + '-' + value.slice(4, 6);
+        }
+        e.target.value = value.slice(0, 8);
+    });
+
+    function iniciarSincronizacao() {
+        const matriculaVal = inputMatricula.value.trim();
+        const btn = document.getElementById('btnSincronizar');
+        const spinner = document.getElementById('loadingSpinner');
+        const btnText = document.getElementById('btnText');
+        const panel = document.getElementById('statusPanel');
+        const mapEl = document.getElementById('map');
+
+        if (matriculaVal.length < 6) {
+            alert('Por favor, introduza uma matrícula válida.');
+            return;
+        }
+
+        btn.disabled = true;
+        spinner.style.display = 'block';
+        btnText.innerText = 'A ligar aos servidores Google Maps...';
+        panel.classList.remove('active');
+        mapEl.classList.remove('visible');
+
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const coordenadaVeiculo = { lat: lat, lng: lon };
+                    const agora = new Date().toLocaleTimeString('pt-PT');
+
+                    document.getElementById('resMatricula').innerText = matriculaVal;
+                    document.getElementById('resLat').innerText = lat.toFixed(6);
+                    document.getElementById('resLon').innerText = lon.toFixed(6);
+                    document.getElementById('resTempo').innerText = agora + ' (Tempo Real)';
+
+                    mapEl.classList.add('visible');
+                    
+                    if (!map) {
+                        map = new google.maps.Map(mapEl, {
+                            center: coordenadaVeiculo,
+                            zoom: 16,
+                            mapTypeId: 'roadmap',
+                            mapTypeControl: true,
+                            streetViewControl: false
+                        });
+                    } else {
+                        map.setCenter(coordenadaVeiculo);
+                    }
+
+                    if (marker) marker.setMap(null);
+
+                    // Ícone SVG personalizado para simular o carro no mapa
+                    const carIcon = {
+                        url: "data:image/svg+xml;utf8,<svg xmlns='http://w3.org' viewBox='0 0 24 24' fill='%232563eb' width='36' height='36'><path d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1s-1.5 1-1.5 1zm11 0c-.83 0-1.5-.67-1.5-1s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1-1.5 1zM5 11l1.5-4.5h11L19 11H5z'/></svg>",
+                        scaledSize: new google.maps.Size(36, 36),
+                        origin: new google.maps.Point(0, 0),
+                        anchor: new google.maps.Point(18, 18)
+                    };
+
+                    marker = new google.maps.Marker({
+                        position: coordenadaVeiculo,
+                        map: map,
+                        title: `Veículo: ${matriculaVal}`,
+                        icon: carIcon,
+                        animation: google.maps.Animation.DROP
+                    });
+
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        spinner.style.display = 'none';
+                        btnText.innerText = 'Localizar e Sincronizar Veículo';
+                        panel.classList.add('active');
