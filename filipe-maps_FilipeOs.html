@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Câmara Live + Google Maps</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        /* Painel dividido para colocar a câmara e o mapa lado a lado */
+        .painel-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .bloco {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        /* Estilo para o elemento de vídeo da câmara */
+        #video-camara {
+            width: 100%;
+            height: 450px;
+            object-fit: cover;
+            border-radius: 8px;
+            background-color: #222;
+            transform: scaleX(-1); /* Efeito de espelho para parecer mais natural */
+        }
+        /* Estilo para o mapa */
+        .bloco iframe {
+            width: 100%;
+            height: 450px;
+            border: 0;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Painel em Tempo Real: Câmara & Localização</h2>
+
+    <div class="painel-container">
+        
+        <!-- BLOCO 1: Transmissão da Câmara -->
+        <div class="bloco">
+            <h3>A Tua Câmara (Live)</h3>
+            <video id="video-camara" autoplay playsinline></video>
+        </div>
+
+        <!-- BLOCO 2: O Teu Google Maps -->
+        <div class="bloco">
+            <h3>Localização no Mapa</h3>
+            <!-- Lembra-te de substituir este iframe pelo teu código oficial do Google Maps -->
+            <iframe 
+                src="https://google.com" 
+                loading="lazy" 
+                referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+        </div>
+
+    </div>
+
+    <!-- Script para ativar a câmara automaticamente -->
+    <script>
+        const video = document.getElementById('video-camara');
+
+        // Solicita acesso à câmara de vídeo do utilizador
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    // Vincula o fluxo da câmara ao elemento <video>
+                    video.srcObject = stream;
+                })
+                .catch(function(error) {
+                    console.error("Erro ao aceder à câmara: ", error);
+                    alert("Não foi possível aceder à câmara. Verifica as permissões do teu navegador.");
+                });
+        } else {
+            alert("O teu navegador não suporta a ativação da câmara por HTML5.");
+        }
+    </script>
+
+</body>
+</html>
