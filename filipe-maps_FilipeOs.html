@@ -2,96 +2,171 @@
 <html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Câmara Live + Google Maps</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Live360 - Câmara</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        /* Reseta o documento para ocupar o ecrã inteiro de forma limpa */
+        html, body {
             margin: 0;
-            padding: 20px;
-            background-color: #f4f4f9;
-        }
-        h2 {
-            text-align: center;
-            color: #333;
-        }
-        /* Painel dividido para colocar a câmara e o mapa lado a lado */
-        .painel-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .bloco {
-            flex: 1;
-            min-width: 300px;
-            background: white;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        /* Estilo para o elemento de vídeo da câmara */
-        #video-camara {
+            padding: 0;
             width: 100%;
-            height: 450px;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+
+        .camera-viewport {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* O vídeo preenche todo o ecrã sem distorcer as proporções */
+        #video-feed {
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            border-radius: 8px;
-            background-color: #222;
-            transform: scaleX(-1); /* Efeito de espelho para parecer mais natural */
+            transform: scaleX(-1); /* Efeito espelho para a câmara frontal */
         }
-        /* Estilo para o mapa */
-        .bloco iframe {
+
+        /* Interface sobreposta ao vídeo */
+        .interface-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 450px;
-            border: 0;
-            border-radius: 8px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+            pointer-events: none; /* Garante que cliques passam para os botões */
+        }
+
+        .topo {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .badge-live {
+            background: rgba(0, 0, 0, 0.65);
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ponto-rec {
+            width: 8px;
+            height: 8px;
+            background-color: #ff3b30; /* Vermelho de gravação/live */
+            border-radius: 50%;
+            animation: piscar 1s infinite alternate;
+        }
+
+        @keyframes piscar {
+            from { opacity: 0.3; }
+            to { opacity: 1; }
+        }
+
+        .btn-toggle {
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: #fff;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            pointer-events: auto;
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: background 0.2s;
+        }
+
+        .btn-toggle:active {
+            background: rgba(255, 255, 255, 0.4);
         }
     </style>
 </head>
 <body>
 
-    <h2>Painel em Tempo Real: Câmara & Localização</h2>
+    <div class="camera-viewport">
+        <!-- Feed de vídeo nativo -->
+        <video id="video-feed" autoplay playsinline muted></video>
 
-    <div class="painel-container">
-        
-        <!-- BLOCO 1: Transmissão da Câmara -->
-        <div class="bloco">
-            <h3>A Tua Câmara (Live)</h3>
-            <video id="video-camara" autoplay playsinline></video>
+        <!-- Elementos Visuais por cima da câmara -->
+        <div class="interface-overlay">
+            <div class="topo">
+                <div class="badge-live">
+                    <div class="ponto-rec"></div>
+                    <span>LIVE 360</span>
+                </div>
+                <!-- Botão para alternar a câmara no telemóvel -->
+                <button class="btn-toggle" id="btn-rodar" title="Mudar Câmara">🔄</button>
+            </div>
         </div>
-
-        <!-- BLOCO 2: O Teu Google Maps -->
-        <div class="bloco">
-            <h3>Localização no Mapa</h3>
-            <!-- Lembra-te de substituir este iframe pelo teu código oficial do Google Maps -->
-            <iframe 
-                src="https://google.com" 
-                loading="lazy" 
-                referrerpolicy="no-referrer-when-downgrade">
-            </iframe>
-        </div>
-
     </div>
 
-    <!-- Script para ativar a câmara automaticamente -->
     <script>
-        const video = document.getElementById('video-camara');
+        const videoElement = document.getElementById('video-feed');
+        const btnRodar = document.getElementById('btn-rodar');
+        
+        let streamAtivo = null;
+        let modoCamera = "user"; // "user" = frontal/selfie, "environment" = traseira
 
-        // Solicita acesso à câmara de vídeo do utilizador
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(function(stream) {
-                    // Vincula o fluxo da câmara ao elemento <video>
-                    video.srcObject = stream;
+        function ligarCamara(modo) {
+            // Fecha a câmara anterior se estiver aberta para libertar o hardware
+            if (streamAtivo) {
+                streamAtivo.getTracks().forEach(track => track.stop());
+            }
+
+            // Inverte o espelho horizontal apenas na câmara frontal (selfie)
+            videoElement.style.transform = (modo === "user") ? "scaleX(-1)" : "scaleX(1)";
+
+            const opcoes = {
+                video: { 
+                    facingMode: modo,
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
+                audio: false // Mantém em silêncio para evitar eco/feedback
+            };
+
+            navigator.mediaDevices.getUserMedia(opcoes)
+                .then(stream => {
+                    streamAtivo = stream;
+                    videoElement.srcObject = stream;
                 })
-                .catch(function(error) {
-                    console.error("Erro ao aceder à câmara: ", error);
-                    alert("Não foi possível aceder à câmara. Verifica as permissões do teu navegador.");
+                .catch(erro => {
+                    console.error("Erro de acesso à câmara:", erro);
+                    alert("Acesso negado. Ativa a permissão de câmara nas definições do teu navegador.");
                 });
+        }
+
+        // Alterna entre as câmaras ao clicar no ícone 🔄
+        btnRodar.addEventListener('click', () => {
+            modoCamera = (modoCamera === "user") ? "environment" : "user";
+            ligarCamara(modoCamera);
+        });
+
+        // Inicializa a câmara imediatamente
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            ligarCamara(modoCamera);
         } else {
-            alert("O teu navegador não suporta a ativação da câmara por HTML5.");
+            alert("O teu navegador ou dispositivo não suporta o acesso direto à câmara via HTML5.");
         }
     </script>
 
