@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filipe Windows Sys Simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0078d7 url('https://unsplash.com') no-repeat center center;
+            background-size: cover;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Ambiente de Trabalho */
+        #desktop {
+            width: 100%;
+            height: calc(100vh - 40px);
+            position: relative;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .desktop-icon {
+            width: 80px;
+            height: 90px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            transition: background 0.2s;
+        }
+
+        .desktop-icon:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .desktop-icon img {
+            width: 45px;
+            height: 45px;
+            margin-bottom: 5px;
+        }
+
+        .desktop-icon span {
+            font-size: 12px;
+        }
+
+        /* Janelas Dinâmicas */
+        .window {
+            position: absolute;
+            background: #f0f0f0;
+            border: 1px solid #1c97ea;
+            box-shadow: 0px 4px 15px rgba(0,0,0,0.3);
+            border-radius: 4px;
+            display: none;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .window-header {
+            background: #005a9e;
+            color: white;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            font-weight: bold;
+            font-size: 14px;
+            border-top-left-radius: 3px;
+            border-top-right-radius: 3px;
+        }
+
+        .window-controls button {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 14px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .window-controls button.close-btn:hover {
+            background: #e81123;
+        }
+
+        .window-controls button:not(.close-btn):hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .window-content {
+            padding: 15px;
+            flex: 1;
+            overflow: auto;
+            color: #333;
+            font-size: 14px;
+            background: #ffffff;
+        }
+
+        /* Aplicação de Câmara Específica */
+        #camera-stream {
+            width: 100%;
+            height: 240px;
+            background: #000;
+            border-radius: 4px;
+            transform: scaleX(-1); /* Efeito de espelho natural */
+        }
+
+        .camera-controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-sys {
+            padding: 6px 12px;
+            background: #e1e1e1;
+            border: 1px solid #adadad;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .btn-sys:hover {
+            background: #e5f1fb;
+            border-color: #0078d7;
+        }
+
+        /* Filtros CSS de imagem */
+        .filter-normal { filter: scaleX(-1); }
+        .filter-vintage { filter: scaleX(-1) sepia(0.4) contrast(1.2) brightness(0.9); }
+        .filter-bw { filter: scaleX(-1) grayscale(1) contrast(1.4); }
+
+        /* Barra de Tarefas */
+        #taskbar {
+            width: 100%;
+            height: 40px;
+            background: rgba(16, 16, 16, 0.85);
+            backdrop-filter: blur(10px);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .taskbar-left {
+            display: flex;
+            align-items: center;
+            height: 100%;
+        }
+
+        #start-button {
+            background: #0078d7;
+            color: white;
+            border: none;
+            height: 100%;
+            padding: 0 15px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.2s;
+        }
+
+        #start-button:hover {
+            background: #106ebe;
+        }
+
+        /* Menu Iniciar */
+        #start-menu {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            width: 250px;
+            background: rgba(24, 24, 24, 0.95);
+            backdrop-filter: blur(10px);
+            border-top-right-radius: 5px;
+            box-shadow: 2px -2px 10px rgba(0,0,0,0.5);
+            display: none;
+            flex-direction: column;
+            padding: 10px 0;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .menu-item {
+            color: #ddd;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        #system-tray {
+            color: white;
+            padding-right: 15px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Área de Trabalho -->
+    <div id="desktop">
+        <!-- Ícone 1: Definições do Sistema -->
+        <div class="desktop-icon" onclick="openWindow('sys-window')">
+            <img src="https://flaticon.com" alt="O Meu PC">
+            <span>Filipe OS</span>
+        </div>
+
+        <!-- Ícone 2: Aplicação Câmara Opal -->
+        <div class="desktop-icon" onclick="openWindow('camera-window')">
+            <img src="https://flaticon.com" alt="Câmara">
+            <span>Câmara Cam</span>
+        </div>
+
+        <!-- JANELA 1: Propriedades do Sistema -->
+        <div class="window" id="sys-window" style="top: 80px; left: 150px; width: 450px; height: 300px;">
+            <div class="window-header" id="sys-window-header">
+                <span>Filipe Windows Sys - Propriedades</span>
+                <div class="window-controls">
+                    <button>_</button>
+                    <button>🗖</button>
+                    <button class="close-btn" onclick="closeWindow('sys-window')">X</button>
+                </div>
+            </div>
+            <div class="window-content">
+                <h3>Informações do Sistema</h3><br>
+                <p><strong>Edição:</strong> Filipe OS Professional</p>
+                <p><strong>Versão:</strong> 2026.2 (Opal Cam Stable)</p>
+                <p><strong>Subsistema:</strong> Vercel Web App Deploy</p><br>
+                <p>Ambiente simulado integrado com acesso a hardware de média em sandbox.</p>
+            </div>
+        </div>
+
+        <!-- JANELA 2: Aplicação de Câmara (Estilo aplica-opal) -->
+        <div class="window" id="camera-window" style="top: 120px; left: 250px; width: 500px; height: 380px;">
+            <div class="window-header" id="camera-window-header">
+                <span>Opal Native Camera Preview</span>
+                <div class="window-controls">
+                    <button>_</button>
+                    <button>🗖</button>
+                    <button class="close-btn" onclick="closeWindow('camera-window')">X</button>
+                </div>
+            </div>
+            <div class="window-content" style="display: flex; flex-direction: column;">
+                <video id="camera-stream" autoplay playsinline class="filter-normal"></video>
+                <div class="camera-controls">
+                    <button class="btn-sys" onclick="startCamera()">Ligar Câmara</button>
+                    <button class="btn-sys" onclick="stopCamera()">Desligar</button>
+                    <button class="btn-sys" onclick="applyFilter('filter-vintage')">Filtro Vintage</button>
+                    <button class="btn-sys" onclick="applyFilter('filter-bw')">P&B</button>
+                    <button class="btn-sys" onclick="applyFilter('filter-normal')">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de Tarefas -->
+    <div id="taskbar">
+        <div class="taskbar-left">
+            <button id="start-button" onclick="toggleStartMenu()">
+                <span>❖</span> Iniciar
+            </button>
+        </div>
+        
+        <div id="start-menu">
+            <div class="menu-item" onclick="openWindow('sys-window'); toggleStartMenu();">Filipe OS Specs</div>
+            <div class="menu-item" onclick="openWindow('camera-window'); toggleStartMenu();">Abrir Câmara (Opal)</div>
+            <div class="menu-item" onclick="alert('A reiniciar o sistema...')">Reiniciar</div>
+        </div>
+
+        <div id="system-tray">
+            <div id="clock">00:00</div>
+        </div>
+    </div>
+
+    <script>
+        // Relógio nativo
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+        }
+        setInterval(updateClock, 1000); updateClock();
+
